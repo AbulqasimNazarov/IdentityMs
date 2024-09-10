@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  identityMs:
+    image: IdentityMs
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: identity_app
+    environment:
+      ASPNETCORE_URLS: http://+:80
+    ports:
+      - 5000:80
+    networks:
+      - mynetwork
+    restart: always
+
+  usersMs:
+    image: UsersMs
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: users_app
+    environment:
+      ASPNETCORE_URLS: http://+:80
+    ports:
+      - 6000:80
+    networks:
+      - mynetwork
+    restart: always
+
+
+  rabbitmq:
+    image: rabbitmq:3.12.14-management
+    container_name: rabbitmq_app
+    environment:
+      - RABBITMQ_DEFAULT_USER=rmuser
+      - RABBITMQ_DEFAULT_PASS=rmpassword
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+    ports:
+      - 15672:15672
+      - 5672:5672
+    networks:
+      - mynetwork
+    restart: always
+
+  postgres:
+      image: postgres:latest
+      container_name: mypostgresdb
+      environment:
+        POSTGRES_USER: myuser
+        POSTGRES_PASSWORD: Secret12345!
+        POSTGRES_DB: mydatabase
+      expose:
+        - 5432
+      ports:
+        - 5432:5432
+      volumes:
+        - mypostgresdb_data:/var/lib/postgresql/data
+      networks:
+        - mynetwork
+      restart: always
+
+
+
+  mongo:
+    image: mongo
+    container_name: mongodb
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - 27017:27017
+    networks:
+      - mynetwork
+    restart: always
+    
+
+  gateway:
+    image: gateway
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gateway_app
+    depends_on:
+      - identityMs
+      - usersMs
+    environment:
+      ASPNETCORE_URLS: http://+:80
+    ports:
+      - 6000:80
+    networks:
+      - mynetwork
+    restart: always
+
+networks:
+  mynetwork:
+    driver: bridge
+
+
+volumes:
+  mypostgresdb_data:
+  mongodb_data:
+  rabbitmq:
